@@ -26,27 +26,12 @@ Renderer::Renderer(QVulkanWindow *w, bool msaa)
         }
     }
 
-    mObjects.push_back(new Triangle());
-    mObjects.push_back((new TriangleSurface()));
-    mObjects.push_back((new WorldAxis()));
-	mObjects.push_back(new HeightMap());
-    mObjects.push_back(new ObjMesh(assetPath + "pointcloud.obj"));
+    mObjects.push_back(new TriangleSurface());
+
 
 
     // Dag 030225
-    mObjects.at(0)->setName("tri");
-    mObjects.at(1)->setName("quad");
-    mObjects.at(2)->setName("axis");
-	mObjects.at(3)->setName("terrain");
-    mObjects.at(4)->setName("pointcloud");
-    //mObjects.at(4)->setName("pointcloud");
-    static_cast<HeightMap*>(mObjects.at(3))->makeTerrain(assetPath + "Heightmap.jpg");
 
-    mObjects.at(3)->setPosition(1000, 1000, 1000);
-
-    mObjects.at(4)->rotate(-90, 1, 0, 0);
-
-    mObjects.at(2)->setPosition(0, 0, -50);
 
     // **************************************
     // Objects in optional map
