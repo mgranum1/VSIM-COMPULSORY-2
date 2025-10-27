@@ -10,6 +10,14 @@ class VisualObject
 {
 public:
     VisualObject();
+    virtual ~VisualObject() {}
+
+
+    struct Triangle {
+        int v[3];          // vertex-indekser
+        int neighbors[3];  // nabo-trekanter (-1 = ingen)
+    };
+
 
     void move(float x, float y = 0.0f, float z = 0.0f);
     void scale(float s);

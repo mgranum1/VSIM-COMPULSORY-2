@@ -228,16 +228,16 @@ void VulkanWindow::handleInput()
     if (mInput.RMB)
     {
         if (mInput.W)
-            mCamera->setSpeed(mCameraSpeed * 100);
+            mCamera->setSpeed(mCameraSpeed );
         if (mInput.S)
-            mCamera->setSpeed(-mCameraSpeed * 100);
+            mCamera->setSpeed(-mCameraSpeed );
         if (mInput.D)
-            mCamera->moveRight(-mCameraSpeed * 100);
+            mCamera->moveRight(-mCameraSpeed );
         if (mInput.A)
-            mCamera->moveRight(mCameraSpeed * 100);
+            mCamera->moveRight(mCameraSpeed );
         if (mInput.Q)
-            mCamera->updateHeigth(mCameraSpeed * 100);
+            mCamera->updateHeigth(mCameraSpeed );
         if (mInput.E)
-            mCamera->updateHeigth(-mCameraSpeed * 100);
+            mCamera->updateHeigth(-mCameraSpeed );
     }
 }

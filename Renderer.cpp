@@ -3,12 +3,13 @@
 #include <QFile>
 #include <fstream>
 #include "VulkanWindow.h"
+
 #include "WorldAxis.h"
-#include "Triangle.h"
 #include "TriangleSurface.h"
-#include "HeightMap.h"
+#include "ball.h"
+
 #include "stb_image.h"
-#include "ObjMesh.h"
+
 
 /*** Renderer class ***/
 Renderer::Renderer(QVulkanWindow *w, bool msaa)
@@ -27,7 +28,18 @@ Renderer::Renderer(QVulkanWindow *w, bool msaa)
     }
 
     mObjects.push_back(new TriangleSurface());
+    mObjects.push_back(new WorldAxis());
+    mObjects.push_back(new Ball());
 
+
+    mObjects.at(0)->setName("TriangleSurface");
+    mObjects.at(1)->setName("WorldAxis");
+    mObjects.at(2)->setName("Ball");
+
+    auto* ball    = dynamic_cast<Ball*>(mObjects.at(2));
+
+    ball->setCurrentTriangle(1);
+    ball->setPosition(0.2f, 10.f, 0.2f); // litt over T1
 
 
     // Dag 030225
@@ -193,7 +205,7 @@ void Renderer::initResources()
 	// **** Input Assembly **** - describes how primitives are assembled in the Graphics pipeline
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;       //Draw triangles
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;       //Draw triangles
 	inputAssembly.primitiveRestartEnable = VK_FALSE;                    //Allow strips to be connected, not used in TriangleList
     pipelineInfo.pInputAssemblyState = &inputAssembly;
 
@@ -298,57 +310,63 @@ void Renderer::initSwapChainResources()
 
 void Renderer::startNextFrame()
 {
-    //Handeling input from keyboard and mouse is done in VulkanWindow
-    //Has to be done each frame to get smooth movement
     mVulkanWindow->handleInput();
-    mCamera.update();               //input can have moved the camera
+    mCamera.update();
 
-    VkCommandBuffer commandBuffer = mWindow->currentCommandBuffer();
+    // Delta-tid
+    static qint64 lastTime = 0;
+    qint64 now = mTimer.nsecsElapsed();   // husk å starte mTimer i ctor med mTimer.start()
+    float dt = (lastTime > 0) ? float((now - lastTime) * 1e-9) : 0.016f;
+    lastTime = now;
+    if (dt > 0.05f) dt = 0.05f;
 
-	setRenderPassParameters(commandBuffer);
+    // --- oppdater ballen ---
+    if (mObjects.size() > 2) {
+        auto* surface = dynamic_cast<TriangleSurface*>(mObjects.at(0));
+        auto* ball    = dynamic_cast<Ball*>(mObjects.at(2));
 
-    VkDeviceSize vbOffset{ 0 };     //Offsets into buffer being bound
 
-    mDeviceFunctions->vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, 
-        &mDescriptorSet, 0, nullptr);
-
-    setViewProjectionMatrix();   //Update the view and projection matrix in the Uniform
-
-    /********************************* Our draw call!: *********************************/
-    for (std::vector<VisualObject*>::iterator it=mObjects.begin(); it!=mObjects.end(); it++)
-    {
-        //Draw type
-		if ((*it)->getDrawType() == 0)
-			mDeviceFunctions->vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline1);
-		else
-			mDeviceFunctions->vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mColorMaterial.pipeline);
-
-        QMatrix4x4 mvp = mCamera.projectionMatrix() * mCamera.viewMatrix() * (*it)->getMatrix();
-        setModelMatrix((*it)->getMatrix()); //mvp);
-        
-        // Bind the texture descriptor set
-		setTexture(mTextureHandle, commandBuffer);
-        
-        mDeviceFunctions->vkCmdBindVertexBuffers(commandBuffer, 0, 1, &(*it)->getVBuffer(), &vbOffset);
-		//Check if we have an index buffer - if so, use Indexed draw
-        if ((*it)->getIndices().size() > 0)
-        {
-			mDeviceFunctions->vkCmdBindIndexBuffer(commandBuffer, (*it)->getIBuffer(), 0, VK_INDEX_TYPE_UINT32);
-			mDeviceFunctions->vkCmdDrawIndexed(commandBuffer, (*it)->getIndices().size(), 1, 0, 0, 0); //size == number of indices
-		}
-		else   //No index buffer - use regular draw
-			mDeviceFunctions->vkCmdDraw(commandBuffer, (*it)->getVertices().size(), 1, 0, 0);   
+        if (surface && ball) {
+            ball->update(dt, surface->getVertices(), surface->getTriangles());
+        }
     }
-    /***************************************/
+
+    // --- vanlig Vulkan draw ---
+    VkCommandBuffer commandBuffer = mWindow->currentCommandBuffer();
+    setRenderPassParameters(commandBuffer);
+
+    VkDeviceSize vbOffset{0};
+    mDeviceFunctions->vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                              mPipelineLayout, 0, 1, &mDescriptorSet, 0, nullptr);
+
+    setViewProjectionMatrix();
+
+    for (auto* obj : mObjects)
+    {
+        if (obj->getDrawType() == 0)
+            mDeviceFunctions->vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline1);
+        else
+            mDeviceFunctions->vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mColorMaterial.pipeline);
+
+        setModelMatrix(obj->getMatrix());
+        setTexture(mTextureHandle, commandBuffer);
+
+        mDeviceFunctions->vkCmdBindVertexBuffers(commandBuffer, 0, 1, &obj->getVBuffer(), &vbOffset);
+
+        if (!obj->getIndices().empty()) {
+            mDeviceFunctions->vkCmdBindIndexBuffer(commandBuffer, obj->getIBuffer(), 0, VK_INDEX_TYPE_UINT32);
+            mDeviceFunctions->vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(obj->getIndices().size()), 1, 0, 0, 0);
+        } else {
+            mDeviceFunctions->vkCmdDraw(commandBuffer, static_cast<uint32_t>(obj->getVertices().size()), 1, 0, 0);
+        }
+    }
 
     mDeviceFunctions->vkCmdEndRenderPass(commandBuffer);
 
-    //Hardcoded!!!
-   // mObjects.at(1)->rotate(1.0f, 0.0f, 0.0f, 1.0f);
-    
     mWindow->frameReady();
-    mWindow->requestUpdate(); // render continuously, throttled by the presentation rate
+    mWindow->requestUpdate();
 }
+
 
 VkShaderModule Renderer::createShader(const QString &name)
 {

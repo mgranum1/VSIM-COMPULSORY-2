@@ -2,6 +2,7 @@
 #define RENDERER_H
 
 #include <QVulkanWindow>
+#include <qelapsedtimer.h>
 #include <vector>
 #include <unordered_map>
 #include "Camera.h"
@@ -37,6 +38,9 @@ public:
 
     std::vector<VisualObject*>& getObjects() { return mObjects; }
     std::unordered_map<std::string, VisualObject*>& getMap() { return mMap; }
+
+public:
+     QElapsedTimer mTimer;
 
 protected:
 
