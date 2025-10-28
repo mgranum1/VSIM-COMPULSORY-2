@@ -22,7 +22,7 @@ public:
 private:
     QVector3D mVelocity{0,0,0};
     QVector3D mAcceleration{0,0,0};
-    float mMass{1.0f};
+    float mMass{1.f};
     int mCurrentTriangle{0};
 
     QVector3D projectGravityOnTriangle(const QVector3D &g,

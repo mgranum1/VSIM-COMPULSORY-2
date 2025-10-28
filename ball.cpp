@@ -105,16 +105,23 @@ void Ball::update(float dt,
     QVector3D normal = QVector3D::crossProduct(v1 - v0, v2 - v0).normalized();
     float d = QVector3D::dotProduct(normal, v0);
 
-    // Akselerasjon = tyngdekraft projisert på planet
+    //  F = m * g
     QVector3D gravity(0, -9.81f, 0);
-    QVector3D accel = gravity - normal * QVector3D::dotProduct(gravity, normal);
+    QVector3D gravityForce = gravity * mMass;
 
-    // Integrasjon
-    mVelocity += accel * dt;
+    // Projiser kraften på trekantens plan
+    QVector3D projectedForce = gravityForce - normal * QVector3D::dotProduct(gravityForce, normal);
+
+    // Newtons andre lov: a = F / m
+    mAcceleration = projectedForce / mMass;
+
+    // Integrasjon: v = v + a*dt
+    mVelocity += mAcceleration * dt;
 
     // Friksjon/demping
     mVelocity *= 0.98f;
 
+    // Ny posisjon: p = p + v*dt
     QVector3D pos = QVector3D(mMatrix.column(3));
     pos += mVelocity * dt;
 
@@ -122,27 +129,27 @@ void Ball::update(float dt,
     float dist = QVector3D::dotProduct(normal, pos) - d;
     pos -= normal * dist;
 
-    // Hvis ballen sklir ut av trekanten
+    // Sjekk om ballen sklir ut av trekanten
     if (!isInsideTriangle(pos, v0, v1, v2)) {
         bool moved = false;
         for (int edge = 0; edge < 3; ++edge) {
             if (tri.neighbors[edge] != -1) {
                 mCurrentTriangle = tri.neighbors[edge];
 
-                // Reprojiser hastigheten inn i det nye planet
+                // Reprojiser hastighet inn i nytt plan
                 const Triangle& newTri = triangles[mCurrentTriangle];
                 QVector3D nv0(vertices[newTri.v[0]].x, vertices[newTri.v[0]].y, vertices[newTri.v[0]].z);
                 QVector3D nv1(vertices[newTri.v[1]].x, vertices[newTri.v[1]].y, vertices[newTri.v[1]].z);
                 QVector3D nv2(vertices[newTri.v[2]].x, vertices[newTri.v[2]].y, vertices[newTri.v[2]].z);
-                QVector3D nNormal = QVector3D::crossProduct(nv1-nv0, nv2-nv0).normalized();
-                mVelocity -= nNormal * QVector3D::dotProduct(mVelocity, nNormal);
+                QVector3D nNormal = QVector3D::crossProduct(nv1 - nv0, nv2 - nv0).normalized();
 
+                mVelocity -= nNormal * QVector3D::dotProduct(mVelocity, nNormal);
                 moved = true;
                 break;
             }
         }
         if (!moved) {
-            // Ingen nabo? ballen stopper helt
+            // Ingen nabo? da stopper ballen helt
             mVelocity = QVector3D(0,0,0);
             mMatrix.setColumn(3, QVector4D(pos, 1.0f));
             return;
@@ -152,3 +159,4 @@ void Ball::update(float dt,
     // Oppdater transform
     mMatrix.setColumn(3, QVector4D(pos, 1.0f));
 }
+
