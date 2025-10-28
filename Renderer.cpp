@@ -38,9 +38,10 @@ Renderer::Renderer(QVulkanWindow *w, bool msaa)
 
     auto* ball    = dynamic_cast<Ball*>(mObjects.at(2));
 
-    ball->setCurrentTriangle(1);
+    ball->setCurrentTriangle(0);
     ball->setPosition(0.2f, 10.f, 0.2f); // litt over T1
 
+    //mTimer.start();
 
     // Dag 030225
 
@@ -290,7 +291,7 @@ void Renderer::initResources()
     // Create the texture sampler
     createTextureSampler();
 
-    mTextureHandle = createTexture((assetPath + "Hund.bmp")); //Heightmap.jpg HundA.bmp
+    mTextureHandle = createTexture((assetPath + "football.jpg")); //Heightmap.jpg HundA.bmp
     //mTextureHandle = createTexture((assetPath + "green-grass-texture.jpg").c_str());
 
     // getVulkanHWInfo(); // if you want to get info about the Vulkan hardware
@@ -315,15 +316,15 @@ void Renderer::startNextFrame()
 
     // Delta-tid
     static qint64 lastTime = 0;
-    qint64 now = mTimer.nsecsElapsed();   // husk å starte mTimer i ctor med mTimer.start()
+    qint64 now = mTimer.nsecsElapsed();
     float dt = (lastTime > 0) ? float((now - lastTime) * 1e-9) : 0.016f;
     lastTime = now;
     if (dt > 0.05f) dt = 0.05f;
 
     // --- oppdater ballen ---
     if (mObjects.size() > 2) {
-        auto* surface = dynamic_cast<TriangleSurface*>(mObjects.at(0));
-        auto* ball    = dynamic_cast<Ball*>(mObjects.at(2));
+        TriangleSurface* surface = dynamic_cast<TriangleSurface*>(mObjects.at(0));
+        Ball* ball               = dynamic_cast<Ball*>(mObjects.at(2));
 
 
         if (surface && ball) {

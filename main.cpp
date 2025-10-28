@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     MainWindow mainWindow(vulkanWindow, messageLogWidget.data());
 
     //Sets the size of the program
-    mainWindow.resize(1024, 1024);
+    mainWindow.resize(2560, 1440);
     //Tells the system to show this main window
     mainWindow.show();
 

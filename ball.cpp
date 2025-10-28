@@ -2,7 +2,6 @@
 #include <cmath>
 #include <QDebug>
 
-
 // Konstruktør lager en kule-mesh
 Ball::Ball(int sectors, int stacks, float radius)
 {
@@ -77,6 +76,11 @@ bool Ball::isInsideTriangle(const QVector3D &p,
     float wv = QVector3D::dotProduct(w,v);
     float D = uv * uv - uu * vv;
 
+    if (std::fabs(D) < 1e-6f) {
+        // Trekanten er negativ, returner false
+        return false;
+    }
+
     float s = (uv * wv - vv * wu) / D;
     float t = (uv * wu - uu * wv) / D;
 
@@ -107,6 +111,10 @@ void Ball::update(float dt,
 
     // Integrasjon
     mVelocity += accel * dt;
+
+    // Friksjon/demping
+    mVelocity *= 0.98f;
+
     QVector3D pos = QVector3D(mMatrix.column(3));
     pos += mVelocity * dt;
 
@@ -120,12 +128,21 @@ void Ball::update(float dt,
         for (int edge = 0; edge < 3; ++edge) {
             if (tri.neighbors[edge] != -1) {
                 mCurrentTriangle = tri.neighbors[edge];
+
+                // Reprojiser hastigheten inn i det nye planet
+                const Triangle& newTri = triangles[mCurrentTriangle];
+                QVector3D nv0(vertices[newTri.v[0]].x, vertices[newTri.v[0]].y, vertices[newTri.v[0]].z);
+                QVector3D nv1(vertices[newTri.v[1]].x, vertices[newTri.v[1]].y, vertices[newTri.v[1]].z);
+                QVector3D nv2(vertices[newTri.v[2]].x, vertices[newTri.v[2]].y, vertices[newTri.v[2]].z);
+                QVector3D nNormal = QVector3D::crossProduct(nv1-nv0, nv2-nv0).normalized();
+                mVelocity -= nNormal * QVector3D::dotProduct(mVelocity, nNormal);
+
                 moved = true;
                 break;
             }
         }
         if (!moved) {
-            // Ingen nabo → ballen stopper helt
+            // Ingen nabo? ballen stopper helt
             mVelocity = QVector3D(0,0,0);
             mMatrix.setColumn(3, QVector4D(pos, 1.0f));
             return;
@@ -135,9 +152,3 @@ void Ball::update(float dt,
     // Oppdater transform
     mMatrix.setColumn(3, QVector4D(pos, 1.0f));
 }
-
-
-
-
-
-

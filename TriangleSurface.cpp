@@ -7,7 +7,7 @@ TriangleSurface::TriangleSurface() : VisualObject()
     float s = 3; //Skalering av objektet
 
     // Fire hjørner + midtpunkt
-    Vertex v1{ 0.0f * s,  .3f * s,  0.0f * s,   1.0f, 0.0f, 0.0f,  0.0f, 0.0f }; // bunn venstre
+    Vertex v1{ 0.0f * s,  .6f * s,  0.0f * s,   1.0f, 0.0f, 0.0f,  0.0f, 0.0f }; // bunn venstre
     Vertex v2{ 1.0f * s,  0.0f * s,  0.0f * s,   0.0f, 1.0f, 0.0f,  1.0f, 0.0f }; // bunn høyre
     Vertex v3{ 1.0f * s,  0.0f * s,  1.0f * s,   0.0f, 0.0f, 1.0f,  1.0f, 1.0f }; // top høyre
     Vertex v4{ 0.0f * s,  0.0f * s,  1.0f * s,   1.0f, 1.0f, 0.0f,  0.0f, 1.0f }; // top venstre
